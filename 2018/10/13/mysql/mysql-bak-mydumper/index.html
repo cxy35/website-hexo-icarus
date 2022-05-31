@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html  lang="zh">
+<head>
+    <meta charset="utf-8" />
+
+<meta name="generator" content="Hexo 4.2.0" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<title>MySQL 备份与恢复 - mydumper - 程序员35</title>
+
+
+    <meta name="description" content="mydumper 是第三方支持 mysql 的备份恢复工具，支持多线程，备份与恢复速度快。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL 备份与恢复 - mydumper">
+<meta property="og:url" content="https://yoursite.com/2018/10/13/mysql/mysql-bak-mydumper/index.html">
+<meta property="og:site_name" content="程序员35">
+<meta property="og:description" content="mydumper 是第三方支持 mysql 的备份恢复工具，支持多线程，备份与恢复速度快。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://yoursite.com/website-hexo-icarus/images/og_image.png">
+<meta property="article:published_time" content="2018-10-13T07:42:59.000Z">
+<meta property="article:modified_time" content="2020-05-22T06:45:03.719Z">
+<meta property="article:author" content="程序员35">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="备份">
+<meta property="article:tag" content="mydumper">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://yoursite.com/website-hexo-icarus/images/og_image.png">
+
+
+
+
+
+
+
+<link rel="icon" href="/website-hexo-icarus/images/config/favicon.svg">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.7.2/css/bulma.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,600|Source+Code+Pro">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css">
+
+
+    
+    
+<style>body>.footer,body>.navbar,body>.section{opacity:0}</style>
+
+    
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css">
+
+    
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.css">
+
+    
+    
+    
+    
+<link rel="stylesheet" href="/website-hexo-icarus/css/back-to-top.css">
+
+    
+    
+    
+    
+    
+    
+    
+    <link rel="stylesheet" href="/website-hexo-icarus/css/progressbar.css">
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+    
+    <script async="" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    
+
+
+<link rel="stylesheet" href="/website-hexo-icarus/css/style.css">
+</head>
+<body class="is-3-column">
+    <nav class="navbar navbar-main">
+    <div class="container">
+        <div class="navbar-brand is-flex-center">
+            <a class="navbar-item navbar-logo" href="/website-hexo-icarus/">
+            
+                <img src="/website-hexo-icarus/images/config/logo.svg" alt="MySQL 备份与恢复 - mydumper" height="28">
+            
+            </a>
+        </div>
+        <div class="navbar-menu">
+            
+            <div class="navbar-start">
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/">主页</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/archives">归档</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/categories">分类</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/tags">标签</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/springboot">Spring Boot</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/springcloud">Spring Cloud</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/mysql">MySQL</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/redis">Redis</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/elastic">Elastic</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/nginx">Nginx</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/linux">Linux</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/other">其他</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/tool">工具</a>
+                
+                <a class="navbar-item"
+                href="/website-hexo-icarus/about">About</a>
+                
+            </div>
+            
+            <div class="navbar-end">
+                
+                    
+                    <a class="navbar-item" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/cxy35">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                    
+                
+                
+                <a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;">
+                    <i class="fas fa-list-ul"></i>
+                </a>
+                
+                
+                <a class="navbar-item search" title="搜索" href="javascript:;">
+                    <i class="fas fa-search"></i>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+</nav>
+    
+    
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <!-- 将 main_column_class() 改为 col() -->
+                <div class="column is-6-tablet is-6-desktop is-9-widescreen has-order-2 column-main">
+<div class="card">
+    
+    <div class="card-content article ">
+        
+        <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
+            <div class="level-left">
+                <time class="level-item has-text-grey" datetime="2018-10-13T07:42:59.000Z">2018-10-13</time>
+                
+                <div class="level-item">
+                <a class="has-link-grey -link" href="/website-hexo-icarus/categories/MySQL/">MySQL</a>
+                </div>
+                
+                
+                <span class="level-item has-text-grey">
+                    
+                    
+                    14 分钟 读完 (大约 2046 个字)
+                </span>
+                
+                
+                <span class="level-item has-text-grey" id="busuanzi_container_page_pv">
+                    <i class="far fa-eye"></i>
+                    <span id="busuanzi_value_page_pv">0</span>次访问
+                </span>
+                
+            </div>
+        </div>
+        
+        <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">
+            
+                MySQL 备份与恢复 - mydumper
+            
+        </h1>
+        <div class="content">
+            <p>mydumper 是第三方支持 mysql 的备份恢复工具，支持多线程，备份与恢复速度快。</p>
+<a id="more"></a>
+
+<h2 id="1- 准备工作"><a href="#1- 准备工作" class="headerlink" title="1 准备工作"></a>1 准备工作 </h2><h3 id="mydumper- 特性"><a href="#mydumper- 特性" class="headerlink" title="mydumper 特性"></a>mydumper 特性 </h3><ol>
+<li> 支持多线程导出数据，速度比 mysqldump 快。</li>
+<li> 支持一致性备份，使用 FTWRL(FLUSH TABLES WITH READ LOCK) 会阻塞 DML 语句, 保证备份数据的一致性。</li>
+<li> 支持将导出文件压缩，节约空间。</li>
+<li> 支持多线程恢复。</li>
+<li> 支持以守护进程模式工作，定时快照和连续二进制日志。</li>
+<li> 支持按照指定大小将备份文件切割。</li>
+<li> 数据与建表语句分离。</li>
+</ol>
+<h3 id="mydumper- 主要工作步骤"><a href="#mydumper- 主要工作步骤" class="headerlink" title="mydumper 主要工作步骤"></a>mydumper 主要工作步骤 </h3><ol>
+<li> 主线程 FLUSH TABLES WITH READ LOCK, 施加全局只读锁，以阻止 DML 语句写入，保证数据的一致性。</li>
+<li> 读取当前时间点的二进制日志文件名和日志写入的位置并记录在 metadata 文件中，以供即时点恢复使用。</li>
+<li>START TRANSACTION WITH CONSISTENT SNAPSHOT; 开启读一致事务。</li>
+<li> 启用 N 个（线程数可以指定，默认是 4） dump 线程导出表和表结构 。</li>
+<li> 备份非事务类型的表。</li>
+<li> 主线程 UNLOCK TABLES，备份完成非事务类型的表之后，释放全局只读锁。</li>
+<li>dump InnoDB tables, 基于事物导出 InnoDB 表。</li>
+<li> 事物结束。</li>
+</ol>
+<h3 id="下载安装包"><a href="# 下载安装包" class="headerlink" title="下载安装包"></a> 下载安装包 </h3><p>mydumper 版本：mydumper-0.9.1</p>
+<ul>
+<li> 手动下载地址：<a href="https://github.com/maxbube/mydumper/releases">https://github.com/maxbube/mydumper/releases</a></li>
+<li>linux 自动获取：wget <a href="https://github.com/maxbube/mydumper/archive/v0.9.1.tar.gz">https://github.com/maxbube/mydumper/archive/v0.9.1.tar.gz</a></li>
+</ul>
+<h2 id="2- 安装"><a href="#2- 安装" class="headerlink" title="2 安装"></a>2 安装 </h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 解压，重命名 </span></span><br><span class="line">tar -xvzf mydumper-0.9.1.tar.gz -C /usr/<span class="built_in">local</span>/</span><br><span class="line">mv /usr/<span class="built_in">local</span>/mydumper-0.9.1 /usr/<span class="built_in">local</span>/mydumper</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看注意事项 </span></span><br><span class="line"><span class="comment">#cat /usr/local/mydumper/README</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装依赖 </span></span><br><span class="line">yum -y install glib2-devel mysql-devel zlib-devel pcre-devel zlib gcc-c++ gcc cmake</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编译安装，完成之后在会 /usr/local/mydumper 目录下生成 mydumper 和 myloader 二进制文件 </span></span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/mydumper</span><br><span class="line">cmake .</span><br><span class="line">make &amp;&amp; make install</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编译报错的话查看报错信息，一般是因为依赖包的问题 </span></span><br><span class="line"><span class="comment"># cat /usr/local/mydumper/CMakeFiles/CMakeOutput.log</span></span><br></pre></td></tr></table></figure>
+
+<p> 具体的编译安装过程如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost <span class="built_in">local</span>]$ <span class="built_in">cd</span> /usr/<span class="built_in">local</span>/mydumper</span><br><span class="line">[root@localhost mydumper]$ cmake .</span><br><span class="line">-- The C compiler identification is GNU 4.4.7</span><br><span class="line">-- The CXX compiler identification is GNU 4.4.7</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/bin/cc</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/bin/cc -- works</span><br><span class="line">-- Detecting C compiler ABI info</span><br><span class="line">-- Detecting C compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/bin/c++</span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/bin/c++ -- works</span><br><span class="line">-- Detecting CXX compiler ABI info</span><br><span class="line">-- Detecting CXX compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Using mysql-config: /usr/bin/mysql_config</span><br><span class="line">-- Found MySQL: /usr/include/mysql, /usr/lib64/mysql/libmysqlclient_r.so;/usr/lib64/libz.so;/usr/lib64/libpthread.so;/usr/lib64/libcrypt.so;/usr/lib64/libnsl.so;/usr/lib64/libm.so;/usr/lib64/libpthread.so;/usr/lib64/libssl.so;/usr/lib64/libcrypto.so</span><br><span class="line">-- Found ZLIB: /usr/lib64/libz.so (found version <span class="string">"1.2.3"</span>) </span><br><span class="line">-- Found PkgConfig: /usr/bin/pkg-config (found version <span class="string">"0.23"</span>) </span><br><span class="line">-- checking <span class="keyword">for</span> one of the modules <span class="string">'glib-2.0'</span></span><br><span class="line">-- checking <span class="keyword">for</span> one of the modules <span class="string">'gthread-2.0'</span></span><br><span class="line">-- checking <span class="keyword">for</span> module <span class="string">'libpcre'</span></span><br><span class="line">--   found libpcre, version 7.8</span><br><span class="line">-- Found PCRE: /usr/include  </span><br><span class="line"></span><br><span class="line">CMake Warning at docs/CMakeLists.txt:9 (message):</span><br><span class="line">  Unable to find Sphinx documentation generator</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">-- ------------------------------------------------</span><br><span class="line">-- MYSQL_CONFIG = /usr/bin/mysql_config</span><br><span class="line">-- CMAKE_INSTALL_PREFIX = /usr/<span class="built_in">local</span></span><br><span class="line">-- BUILD_DOCS = ON</span><br><span class="line">-- WITH_BINLOG = OFF</span><br><span class="line">-- RUN_CPPCHECK = OFF</span><br><span class="line">-- Change a values with: cmake -D&lt;Variable&gt;=&lt;Value&gt;</span><br><span class="line">-- ------------------------------------------------</span><br><span class="line">-- </span><br><span class="line">-- Configuring <span class="keyword">done</span></span><br><span class="line">-- Generating <span class="keyword">done</span></span><br><span class="line">-- Build files have been written to: /usr/<span class="built_in">local</span>/mydumper</span><br><span class="line">[root@localhost mydumper]$ make &amp;&amp; make install</span><br><span class="line">Scanning dependencies of target mydumper</span><br><span class="line">[25%] Building C object CMakeFiles/mydumper.dir/mydumper.c.o</span><br><span class="line">[50%] Building C object CMakeFiles/mydumper.dir/server_detect.c.o</span><br><span class="line">[75%] Building C object CMakeFiles/mydumper.dir/g_unix_signal.c.o</span><br><span class="line">Linking C executable mydumper</span><br><span class="line">[75%] Built target mydumper</span><br><span class="line">Scanning dependencies of target myloader</span><br><span class="line">[100%] Building C object CMakeFiles/myloader.dir/myloader.c.o</span><br><span class="line">Linking C executable myloader</span><br><span class="line">[100%] Built target myloader</span><br><span class="line">[75%] Built target mydumper</span><br><span class="line">[100%] Built target myloader</span><br><span class="line">Install the project...</span><br><span class="line">-- Install configuration: <span class="string">""</span></span><br><span class="line">-- Installing: /usr/<span class="built_in">local</span>/bin/mydumper</span><br><span class="line">-- Removed runtime path from <span class="string">"/usr/local/bin/mydumper"</span></span><br><span class="line">-- Installing: /usr/<span class="built_in">local</span>/bin/myloader</span><br><span class="line">-- Removed runtime path from <span class="string">"/usr/local/bin/myloader"</span></span><br><span class="line">[root@localhost mydumper]$</span><br></pre></td></tr></table></figure>
+
+<h2 id="3- 使用"><a href="#3- 使用" class="headerlink" title="3 使用"></a>3 使用 </h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 导出整个库 </span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/mydumper -u root -S /srv/my3308/run/mysql.sock -B trade_platform -o /data/trade_platform</span><br><span class="line"></span><br><span class="line"><span class="comment"># 只导出表结构，不导数据 </span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/mydumper -u root -S /srv/my3308/run/mysql.sock -B trade_platform -d -o /data/trade_platform</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以压缩的方式导出的文件 </span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/mydumper -u root -S /srv/my3308/run/mysql.sock -B trade_platform -c -o /data/trade_platform</span><br><span class="line"></span><br><span class="line"><span class="comment"># 备份文件以 .gz 的格式压缩 </span></span><br><span class="line"><span class="comment"># ls</span></span><br><span class="line">metadata trade_platform.config.sql.gz trade_platform.trade_order-schema.sql.gz</span><br><span class="line">trade_platform.config-schema.sql.gz trade_platform-schema-create.sql.gz trade_platform.trade_order.sql.gz</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用正则表达式。其中正则表达式可以是 --regex=order.*  导出所有 order 开头的表 </span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/mydumper -u root -S /srv/my3308/run/mysql.sock --regex=<span class="string">'^(?!(mysql|test))'</span> -o /data/bk20170120</span><br></pre></td></tr></table></figure>
+
+<p>mydumper 导出的文件包括 <code>metadata trade\_platform.config.sql trade\_platform.order.sql</code> ：</p>
+<ul>
+<li><p>metadata：记录导出时 binlog 的位点信息，如果启用 gtid ，则记录 gtid 信息。</p>
+  <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Started dump at: 2017-01-20 17:26:53  </span><br><span class="line">SHOW MASTER STATUS:  </span><br><span class="line">  Log: mysql-bin.000025  </span><br><span class="line">  Pos: 505819083  </span><br><span class="line">  GTID:  </span><br><span class="line">Finished dump at: 2017-01-20 17:27:02</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>db.table.sql        : 数据文件，insert 语句  </p>
+</li>
+<li><p>db.table-schema.sql : 包含建表语句  </p>
+</li>
+<li><p>db-schema.sql       : 包含建库语句 </p>
+</li>
+</ul>
+<p> 相比 mysqldump ， mydumper 导出的文件形式是每个表一个文件，对于开发 / 测试环境的误操作恢复十分有效。</p>
+<p><strong> 实际使用：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 导出数据库 mydb</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/mydumper -u root -h 127.0.0.1 -P 3306 -S /usr/<span class="built_in">local</span>/griddata/tmp/mysql.sock --skip-tz-utc --less-locking -B mydb -o /usr/<span class="built_in">local</span>/mydata/mydb_0708 -v 3 | tee -a /tmp/mydb_0708.log</span><br><span class="line"></span><br><span class="line"><span class="comment"># ** Message: Thread 2 dumping table for `mydb`.`t_user`</span></span><br><span class="line"><span class="comment"># ** Message: Thread 2 dumping schema for `mydb`.`t_user`</span></span><br><span class="line"><span class="comment"># ** Message: Thread 2 dumping view for `mydb`.`view_user`</span></span><br><span class="line"><span class="comment"># ** Message: Thread 2 shutting down</span></span><br><span class="line"><span class="comment"># ** Message: Thread 4 shutting down</span></span><br><span class="line"><span class="comment"># ** Message: Thread 1 shutting down</span></span><br><span class="line"><span class="comment"># ** Message: Thread 3 shutting down</span></span><br><span class="line"><span class="comment"># ** Message: Finished dump at: 2019-07-08 22:32:30</span></span><br><span class="line"></span><br><span class="line">[root@localhost mydata]$ cat mydb_0708/metadata </span><br><span class="line">Started dump at: 2019-07-08 16:41:24</span><br><span class="line">SHOW MASTER STATUS:</span><br><span class="line">	Log: mysql-bin.000739</span><br><span class="line">	Pos: 71397008</span><br><span class="line">	GTID:</span><br><span class="line"></span><br><span class="line">SHOW SLAVE STATUS:</span><br><span class="line">	Host: 10.68.128.149</span><br><span class="line">	Log: mysql-bin.000763</span><br><span class="line">	Pos: 77168544</span><br><span class="line">	GTID:</span><br><span class="line"></span><br><span class="line">Finished dump at: 2019-07-08 22:32:30</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导入数据库 mydb</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/myloader -u root -h 127.0.0.1 -P 3308 -o -e -B mydb -d /usr/<span class="built_in">local</span>/mydata/mydb_0708 -t 8 -v 3 | tee -a /tmp/mydb_0710.log</span><br><span class="line"></span><br><span class="line"><span class="comment"># ** Message: Dropping table or view (if exists) `mydb`.`t_user`</span></span><br><span class="line"><span class="comment"># ** Message: Creating table `mydb`.`t_user`</span></span><br><span class="line"><span class="comment"># ** Message: Thread 3 restoring `mydb`.`t_user` part 0</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="4- 参数说明"><a href="#4- 参数说明" class="headerlink" title="4 参数说明"></a>4 参数说明 </h2><h3 id="4-1-mydumper- 常用参数"><a href="#4-1-mydumper- 常用参数" class="headerlink" title="4.1 mydumper 常用参数"></a>4.1 mydumper 常用参数 </h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">-B, --database 要导出的 dbname</span><br><span class="line">-T, --tables-list 需要导出的表名, 导出多个表需要逗号分隔，t1[,t2,t3 ....] </span><br><span class="line">-o, --outputdir 导出数据文件存放的目录，mydumper 会自动创建 </span><br><span class="line">-s, --statement-size 生成插入语句的字节数, 默认 1000000 字节 </span><br><span class="line">-r, --rows Try to split tables into chunks of this many rows. This option turns off --chunk-filesize</span><br><span class="line">-F, --chunk-filesize 切割表文件的大小，默认单位是 MB ，如果表大于 </span><br><span class="line">-c, --compress 压缩导出的文件 </span><br><span class="line">-e, --build-empty-files 即使是空表也为表创建文件 </span><br><span class="line">-x, --regex 使用正则表达式匹配 db.table </span><br><span class="line">-i, --ignore-engines 忽略的存储引擎，多个值使用逗号分隔 </span><br><span class="line">-m, --no-schemas 只导出数据，不导出建库建表语句 </span><br><span class="line">-d, --no-data 仅仅导出建表结构，创建 db 的语句 </span><br><span class="line">-G, --triggers 导出触发器 </span><br><span class="line">-E, --events 导出 events</span><br><span class="line">-R, --routines 导出存储过程和函数 </span><br><span class="line">-k, --no-locks 不执行临时的只读锁，会导致备份不一致 。WARNING: This will cause inconsistent backups</span><br><span class="line">--less-locking 最小化在 innodb 表上的锁表时间 --butai</span><br><span class="line">-l, --long-query-guard 设置长时间执行的 sql 的时间标准 </span><br><span class="line">-K, --<span class="built_in">kill</span>-long-queries 将长时间执行的 sql <span class="built_in">kill</span></span><br><span class="line">-D, --daemon 以守护进程的方式执行 </span><br><span class="line">-I, --snapshot-interval 创建导出快照的时间间隔，默认是 60s ，该参数只有在守护进程执行的时候有用。</span><br><span class="line">-L, --logfile 指定 mydumper 输出的日志文件，默认使用控制台输出。</span><br><span class="line">--tz-utc SET TIME_ZONE=<span class="string">'+00:00'</span> at top of dump to allow dumping of TIMESTAMP data when a server has data <span class="keyword">in</span> different time zones or data is being moved between servers with different time zones, defaults to on use --skip-tz-utc to <span class="built_in">disable</span>.</span><br><span class="line">--skip-tz-utc</span><br><span class="line">--use-savepoints 使用 savepoints 减少 MDL 锁事件 需要 SUPER 权限 </span><br><span class="line">--success-on-1146 Not increment error count and Warning instead of Critical <span class="keyword">in</span> <span class="keyword">case</span> of table doesn</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-myloader- 常用参数"><a href="#4-2-myloader- 常用参数" class="headerlink" title="4.2 myloader 常用参数"></a>4.2 myloader 常用参数 </h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">-d, --directory 备份文件的文件夹 </span><br><span class="line">-q, --queries-per-transaction 每次事物执行的查询数量，默认是 1000</span><br><span class="line">-o, --overwrite-tables 如果要恢复的表存在，则先 drop 掉该表，使用该参数，需要备份时候要备份表结构 </span><br><span class="line">-B, --database 需要还原的数据库 </span><br><span class="line">-e, --<span class="built_in">enable</span>-binlog 启用还原数据的二进制日志 </span><br><span class="line">-h, --host The host to connect to</span><br><span class="line">-u, --user Username with privileges to run the dump</span><br><span class="line">-p, --password User password</span><br><span class="line">-P, --port TCP/IP port to connect to</span><br><span class="line">-S, --socket UNIX domain socket file to use <span class="keyword">for</span> connection</span><br><span class="line">-t, --threads 还原所使用的线程数，默认是 4</span><br><span class="line">-C, --compress-protocol 压缩协议 </span><br><span class="line">-V, --version 显示版本 </span><br><span class="line">-v, --verbose 输出模式, 0 = silent, 1 = errors, 2 = warnings, 3 = info, 默认为 2</span><br></pre></td></tr></table></figure>
+
+<hr>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s/jflrWU62pBtevS62lEIHkQ">MySQL 教程合集 </a></li>
+</ul>
+<hr>
+<p> 扫码关注微信公众号 <strong> 程序员 35</strong> ，获取最新技术干货，畅聊 #程序员的 35，35 的程序员# 。独立站点：<a href="https://cxy35.com">https://cxy35.com</a></p>
+<p><img src="https://oscimg.oschina.net/oscnet/up-285838b9c516db5bb1ba760f292f2346078.JPEG" alt=""></p>
+
+        </div>
+        
+        <div class="level is-size-7 is-uppercase">
+            <div class="level-start">
+                <div class="level-item">
+                    <span class="is-size-6 has-text-grey has-mr-7">#</span>
+                    <a class="has-link-grey -link" href="/website-hexo-icarus/tags/MySQL/" rel="tag">MySQL</a>, <a class="has-link-grey -link" href="/website-hexo-icarus/tags/mydumper/" rel="tag">mydumper</a>, <a class="has-link-grey -link" href="/website-hexo-icarus/tags/%E5%A4%87%E4%BB%BD/" rel="tag">备份</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 
+        <div class="level is-size-6" style="margin-bottom:0px">
+            <p>扫码关注微信公众号 <b>程序员35</b> ，获取最新技术干货，畅聊 #程序员的35，35的程序员# 。</p>
+        </div>
+        <div class="level is-size-7">
+            <img src="/images/config/cxy35.jpg">
+        </div>
+         -->
+        
+        
+        <div class="social-share"></div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js@1.0.16/dist/css/share.min.css">
+<script src="https://cdn.jsdelivr.net/npm/social-share.js@1.0.16/dist/js/social-share.min.js"></script>
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="menu-label has-text-centered">喜欢这篇文章？打赏一下作者吧</h3>
+        <div class="buttons is-centered">
+            
+                
+<a class="button is-info donate">
+    <span class="icon is-small">
+        <i class="fab fa-alipay"></i>
+    </span>
+    <span>支付宝</span>
+    <div class="qrcode"><img src="/website-hexo-icarus/images/config/alipay.jpg" alt="支付宝"></div>
+</a>
+
+                
+                
+<a class="button is-success donate">
+    <span class="icon is-small">
+        <i class="fab fa-weixin"></i>
+    </span>
+    <span>微信</span>
+    <div class="qrcode"><img src="/website-hexo-icarus/images/config/wechatpay.jpg" alt="微信"></div>
+</a>
+
+                
+        </div>
+    </div>
+</div>
+
+
+
+<div class="card card-transparent">
+    <div class="level post-navigation is-flex-wrap is-mobile">
+        
+        <div class="level-start">
+            <a class="level level-item has-link-grey  article-nav-prev" href="/website-hexo-icarus/2018/10/14/mysql/mysql-bak-xtrabackup/">
+                <i class="level-item fas fa-chevron-left"></i>
+                <span class="level-item">MySQL 备份与恢复 - xtrabackup</span>
+            </a>
+        </div>
+        
+        
+        <div class="level-end">
+            <a class="level level-item has-link-grey  article-nav-next" href="/website-hexo-icarus/2018/10/12/mysql/mysql-bak-mysqldump/">
+                <span class="level-item">MySQL 备份与恢复</span>
+                <i class="level-item fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="title is-5 has-text-weight-normal">评论</h3>
+        
+<div id="comment-container"></div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/theme-next/theme-next-gitment@1/default.css"/>
+<script src="https://cdn.jsdelivr.net/gh/theme-next/theme-next-gitment@1/gitment.browser.js"></script>
+<script>
+	var gitment = new Gitment({
+		id: '651c84cad98f402a7c6e37696aee9c92',
+		owner: 'cxy35',
+		repo: 'comment',
+		oauth: {
+			client_id: '4bf825ec1c8b97e37dab',
+			client_secret: '885c95eeba0e51ac9dc349709d22a271acce73e7',
+		},
+	})
+	gitment.render('comment-container')
+</script>
+
+    </div>
+</div>
+</div>
+                <!-- 原始代码，处理非 post 页面和非 page 页面文章详情页 -->
+
+
+<!-- 粘贴的部分，处理 post 页面和 page 页面 -->
+ <!-- 修改，可选保留的栏，这里是左栏 -->
+
+
+
+
+<div class="column is-4-tablet is-4-desktop is-3-widescreen  has-order-1 column-left ">
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <nav class="level">
+            <div class="level-item has-text-centered" style="flex-shrink: 1">
+                <div>
+                    
+                    <figure class="image is-128x128 has-mb-6">
+                        <img class="" src="/website-hexo-icarus/images/config/cxy35.jpg" alt="程序员35">
+                    </figure>
+                    
+                    <p class="is-size-4 is-block">
+                        程序员35
+                    </p>
+                    
+                    
+                    
+                    <p class="is-size-6 is-flex is-flex-center has-text-grey">
+                        <i class="fas fa-map-marker-alt has-mr-7"></i>
+                        <span>China·HangZhou</span>
+                    </p>
+                    
+                </div>
+            </div>
+        </nav>
+        <nav class="level is-mobile">
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        文章
+                    </p>
+                    <a href="/website-hexo-icarus/archives">
+                        <p class="title has-text-weight-normal">
+                            128
+                        </p>
+                    </a>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        分类
+                    </p>
+                    <a href="/website-hexo-icarus/categories">
+                        <p class="title has-text-weight-normal">
+                            23
+                        </p>
+                    </a>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        标签
+                    </p>
+                    <a href="/website-hexo-icarus/tags">
+                        <p class="title has-text-weight-normal">
+                            109
+                        </p>
+                    </a>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="level">
+            <a class="level-item button is-link is-rounded" href="https://github.com/cxy35" target="_blank" rel="noopener">
+                关注我</a>
+        </div>
+        
+        
+        
+        <div class="level is-mobile">
+            
+            <a class="level-item button is-white is-marginless" target="_blank" rel="noopener"
+                title="Github" href="https://github.com/cxy35">
+                
+                <i class="fab fa-github"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank" rel="noopener"
+                title="微信" href="https://mp.weixin.qq.com/s/p1Sou3h7c9GvdXBl7KgPUA">
+                
+                <i class="fab fa-weixin"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank" rel="noopener"
+                title="E-Mail" href="mailto:799737179@qq.com">
+                
+                <i class="fa fa-envelope"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank" rel="noopener"
+                title="RSS" href="/website-hexo-icarus/">
+                
+                <i class="fas fa-rss"></i>
+                
+            </a>
+            
+        </div>
+        
+    </div>
+</div>
+    
+        
+
+    <div class="card widget" id="toc">
+        <div class="card-content">
+            <div class="menu">
+                <h3 class="menu-label">
+                    目录
+                </h3>
+                <ul class="menu-list"><li>
+        <a class="is-flex" href="#1- 准备工作">
+        <span class="has-mr-6">1</span>
+        <span>1 准备工作 </span>
+        </a><ul class="menu-list"><li>
+        <a class="is-flex" href="#mydumper- 特性">
+        <span class="has-mr-6">1.1</span>
+        <span>mydumper 特性 </span>
+        </a></li><li>
+        <a class="is-flex" href="#mydumper- 主要工作步骤">
+        <span class="has-mr-6">1.2</span>
+        <span>mydumper 主要工作步骤 </span>
+        </a></li><li>
+        <a class="is-flex" href="#下载安装包">
+        <span class="has-mr-6">1.3</span>
+        <span> 下载安装包 </span>
+        </a></li></ul></li><li>
+        <a class="is-flex" href="#2- 安装">
+        <span class="has-mr-6">2</span>
+        <span>2 安装 </span>
+        </a></li><li>
+        <a class="is-flex" href="#3- 使用">
+        <span class="has-mr-6">3</span>
+        <span>3 使用 </span>
+        </a></li><li>
+        <a class="is-flex" href="#4- 参数说明">
+        <span class="has-mr-6">4</span>
+        <span>4 参数说明 </span>
+        </a><ul class="menu-list"><li>
+        <a class="is-flex" href="#4-1-mydumper- 常用参数">
+        <span class="has-mr-6">4.1</span>
+        <span>4.1 mydumper 常用参数 </span>
+        </a></li><li>
+        <a class="is-flex" href="#4-2-myloader- 常用参数">
+        <span class="has-mr-6">4.2</span>
+        <span>4.2 myloader 常用参数 </span>
+        </a></li></ul></li></ul>
+            </div>
+        </div>
+    </div>
+
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                分类
+            </h3>
+            <ul class="menu-list">
+            <li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Apache/">
+            <span class="level-start">
+                <span class="level-item">Apache</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">2</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Elasticsearch/">
+            <span class="level-start">
+                <span class="level-item">Elasticsearch</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Git/">
+            <span class="level-start">
+                <span class="level-item">Git</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">3</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/HR/">
+            <span class="level-start">
+                <span class="level-item">HR</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">2</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Hexo/">
+            <span class="level-start">
+                <span class="level-item">Hexo</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">3</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/IDE/">
+            <span class="level-start">
+                <span class="level-item">IDE</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">8</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/JVM/">
+            <span class="level-start">
+                <span class="level-item">JVM</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Linux/">
+            <span class="level-start">
+                <span class="level-item">Linux</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">7</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Markdown/">
+            <span class="level-start">
+                <span class="level-item">Markdown</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Maven/">
+            <span class="level-start">
+                <span class="level-item">Maven</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">2</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/MyBatis/">
+            <span class="level-start">
+                <span class="level-item">MyBatis</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/MySQL/">
+            <span class="level-start">
+                <span class="level-item">MySQL</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">17</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Mycat/">
+            <span class="level-start">
+                <span class="level-item">Mycat</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Nginx/">
+            <span class="level-start">
+                <span class="level-item">Nginx</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">8</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/POI/">
+            <span class="level-start">
+                <span class="level-item">POI</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/PowerJob/">
+            <span class="level-start">
+                <span class="level-item">PowerJob</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Redis/">
+            <span class="level-start">
+                <span class="level-item">Redis</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">7</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/SVN/">
+            <span class="level-start">
+                <span class="level-item">SVN</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Spring-Boot/">
+            <span class="level-start">
+                <span class="level-item">Spring Boot</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">39</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Spring-Cloud/">
+            <span class="level-start">
+                <span class="level-item">Spring Cloud</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">17</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/Tomcat/">
+            <span class="level-start">
+                <span class="level-item">Tomcat</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">3</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/canal/">
+            <span class="level-start">
+                <span class="level-item">canal</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/website-hexo-icarus/categories/%E5%B7%A5%E5%85%B7/">
+            <span class="level-start">
+                <span class="level-item">工具</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
+        <div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            标签云
+        </h3>
+        <a href="/website-hexo-icarus/tags/AWStats/" style="font-size: 10px;">AWStats</a> <a href="/website-hexo-icarus/tags/Apache/" style="font-size: 10.91px;">Apache</a> <a href="/website-hexo-icarus/tags/Bus/" style="font-size: 10px;">Bus</a> <a href="/website-hexo-icarus/tags/CORS/" style="font-size: 10px;">CORS</a> <a href="/website-hexo-icarus/tags/Config/" style="font-size: 10px;">Config</a> <a href="/website-hexo-icarus/tags/Consul/" style="font-size: 10px;">Consul</a> <a href="/website-hexo-icarus/tags/DevTools/" style="font-size: 10px;">DevTools</a> <a href="/website-hexo-icarus/tags/ES/" style="font-size: 10px;">ES</a> <a href="/website-hexo-icarus/tags/EasyCode/" style="font-size: 10px;">EasyCode</a> <a href="/website-hexo-icarus/tags/Eclipse/" style="font-size: 10.91px;">Eclipse</a> <a href="/website-hexo-icarus/tags/Ehcache/" style="font-size: 10px;">Ehcache</a> <a href="/website-hexo-icarus/tags/Elastic/" style="font-size: 10px;">Elastic</a> <a href="/website-hexo-icarus/tags/Elasticsearch/" style="font-size: 11.82px;">Elasticsearch</a> <a href="/website-hexo-icarus/tags/Eureka/" style="font-size: 11.82px;">Eureka</a> <a href="/website-hexo-icarus/tags/Freemarker/" style="font-size: 10px;">Freemarker</a> <a href="/website-hexo-icarus/tags/Gateway/" style="font-size: 10px;">Gateway</a> <a href="/website-hexo-icarus/tags/Git/" style="font-size: 11.82px;">Git</a> <a href="/website-hexo-icarus/tags/HR/" style="font-size: 10.91px;">HR</a> <a href="/website-hexo-icarus/tags/HTTPS/" style="font-size: 10px;">HTTPS</a> <a href="/website-hexo-icarus/tags/Hexo/" style="font-size: 11.82px;">Hexo</a> <a href="/website-hexo-icarus/tags/HyperLogLog/" style="font-size: 10px;">HyperLogLog</a> <a href="/website-hexo-icarus/tags/Hystrix/" style="font-size: 10px;">Hystrix</a> <a href="/website-hexo-icarus/tags/IDE/" style="font-size: 15.45px;">IDE</a> <a href="/website-hexo-icarus/tags/Icarus/" style="font-size: 10px;">Icarus</a> <a href="/website-hexo-icarus/tags/IntelliJ-IDEA/" style="font-size: 12.73px;">IntelliJ IDEA</a> <a href="/website-hexo-icarus/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/website-hexo-icarus/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/website-hexo-icarus/tags/JWT/" style="font-size: 10px;">JWT</a> <a href="/website-hexo-icarus/tags/JdbcTemplate/" style="font-size: 10.91px;">JdbcTemplate</a> <a href="/website-hexo-icarus/tags/Jedis/" style="font-size: 10px;">Jedis</a> <a href="/website-hexo-icarus/tags/Jpa/" style="font-size: 11.82px;">Jpa</a> <a href="/website-hexo-icarus/tags/Lettuce/" style="font-size: 10px;">Lettuce</a> <a href="/website-hexo-icarus/tags/Linux/" style="font-size: 14.55px;">Linux</a> <a href="/website-hexo-icarus/tags/LiveReload/" style="font-size: 10px;">LiveReload</a> <a href="/website-hexo-icarus/tags/MAT/" style="font-size: 10px;">MAT</a> <a href="/website-hexo-icarus/tags/Markdown/" style="font-size: 10px;">Markdown</a> <a href="/website-hexo-icarus/tags/Maven/" style="font-size: 10.91px;">Maven</a> <a href="/website-hexo-icarus/tags/MyBatis/" style="font-size: 11.82px;">MyBatis</a> <a href="/website-hexo-icarus/tags/MySQL/" style="font-size: 19.09px;">MySQL</a> <a href="/website-hexo-icarus/tags/Mycat/" style="font-size: 10px;">Mycat</a> <a href="/website-hexo-icarus/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/website-hexo-icarus/tags/NexT/" style="font-size: 10px;">NexT</a> <a href="/website-hexo-icarus/tags/Nginx/" style="font-size: 15.45px;">Nginx</a> <a href="/website-hexo-icarus/tags/OAuth2/" style="font-size: 10px;">OAuth2</a> <a href="/website-hexo-icarus/tags/OpenFeign/" style="font-size: 10px;">OpenFeign</a> <a href="/website-hexo-icarus/tags/POI/" style="font-size: 10px;">POI</a> <a href="/website-hexo-icarus/tags/PSI-Probe/" style="font-size: 10px;">PSI Probe</a> <a href="/website-hexo-icarus/tags/PowerJob/" style="font-size: 10px;">PowerJob</a> <a href="/website-hexo-icarus/tags/RabbitMQ/" style="font-size: 10.91px;">RabbitMQ</a> <a href="/website-hexo-icarus/tags/Redis/" style="font-size: 17.27px;">Redis</a> <a href="/website-hexo-icarus/tags/Resilience4j/" style="font-size: 10px;">Resilience4j</a> <a href="/website-hexo-icarus/tags/Rest/" style="font-size: 10px;">Rest</a> <a href="/website-hexo-icarus/tags/RestTemplate/" style="font-size: 10px;">RestTemplate</a> <a href="/website-hexo-icarus/tags/SSH/" style="font-size: 10px;">SSH</a> <a href="/website-hexo-icarus/tags/SSL/" style="font-size: 10px;">SSL</a> <a href="/website-hexo-icarus/tags/SVN/" style="font-size: 10px;">SVN</a> <a href="/website-hexo-icarus/tags/Sentinel/" style="font-size: 10px;">Sentinel</a> <a href="/website-hexo-icarus/tags/Session/" style="font-size: 10px;">Session</a> <a href="/website-hexo-icarus/tags/Shiro/" style="font-size: 10px;">Shiro</a> <a href="/website-hexo-icarus/tags/Sleuth/" style="font-size: 10px;">Sleuth</a> <a href="/website-hexo-icarus/tags/Spring-Boot/" style="font-size: 20px;">Spring Boot</a> <a href="/website-hexo-icarus/tags/Spring-Cache/" style="font-size: 10.91px;">Spring Cache</a> <a href="/website-hexo-icarus/tags/Spring-Cloud/" style="font-size: 18.18px;">Spring Cloud</a> <a href="/website-hexo-icarus/tags/Spring-Security/" style="font-size: 14.55px;">Spring Security</a> <a href="/website-hexo-icarus/tags/Starter/" style="font-size: 10px;">Starter</a> <a href="/website-hexo-icarus/tags/Stream/" style="font-size: 10px;">Stream</a> <a href="/website-hexo-icarus/tags/Sublime/" style="font-size: 10.91px;">Sublime</a> <a href="/website-hexo-icarus/tags/Swagger2/" style="font-size: 10px;">Swagger2</a> <a href="/website-hexo-icarus/tags/Thymeleaf/" style="font-size: 10px;">Thymeleaf</a> <a href="/website-hexo-icarus/tags/TkMybatis/" style="font-size: 10px;">TkMybatis</a> <a href="/website-hexo-icarus/tags/Tomcat/" style="font-size: 13.64px;">Tomcat</a> <a href="/website-hexo-icarus/tags/Zuul/" style="font-size: 10px;">Zuul</a> <a href="/website-hexo-icarus/tags/binlog/" style="font-size: 10px;">binlog</a> <a href="/website-hexo-icarus/tags/canal/" style="font-size: 10px;">canal</a> <a href="/website-hexo-icarus/tags/fair/" style="font-size: 10px;">fair</a> <a href="/website-hexo-icarus/tags/mod-jk/" style="font-size: 10px;">mod_jk</a> <a href="/website-hexo-icarus/tags/mod-proxy/" style="font-size: 10px;">mod_proxy</a> <a href="/website-hexo-icarus/tags/mydumper/" style="font-size: 10px;">mydumper</a> <a href="/website-hexo-icarus/tags/mysqldump/" style="font-size: 10px;">mysqldump</a> <a href="/website-hexo-icarus/tags/properties/" style="font-size: 10px;">properties</a> <a href="/website-hexo-icarus/tags/xtrabackup/" style="font-size: 10px;">xtrabackup</a> <a href="/website-hexo-icarus/tags/yaml/" style="font-size: 10px;">yaml</a> <a href="/website-hexo-icarus/tags/%E4%B8%BB%E4%BB%8E/" style="font-size: 10px;">主从</a> <a href="/website-hexo-icarus/tags/%E4%BA%8B%E4%BB%B6/" style="font-size: 10px;">事件</a> <a href="/website-hexo-icarus/tags/%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/" style="font-size: 10px;">任务调度</a> <a href="/website-hexo-icarus/tags/%E4%BC%98%E5%8C%96/" style="font-size: 10.91px;">优化</a> <a href="/website-hexo-icarus/tags/%E5%87%BD%E6%95%B0/" style="font-size: 10px;">函数</a> <a href="/website-hexo-icarus/tags/%E5%88%86%E5%8C%BA/" style="font-size: 10px;">分区</a> <a href="/website-hexo-icarus/tags/%E5%88%86%E5%8C%BA%E8%A1%A8/" style="font-size: 10px;">分区表</a> <a href="/website-hexo-icarus/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 10px;">分布式</a> <a href="/website-hexo-icarus/tags/%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95/" style="font-size: 10px;">单元测试</a> <a href="/website-hexo-icarus/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 10px;">博客</a> <a href="/website-hexo-icarus/tags/%E5%91%BD%E4%BB%A4/" style="font-size: 16.36px;">命令</a> <a href="/website-hexo-icarus/tags/%E5%A4%87%E4%BB%BD/" style="font-size: 12.73px;">备份</a> <a href="/website-hexo-icarus/tags/%E5%A4%9A%E6%95%B0%E6%8D%AE%E6%BA%90/" style="font-size: 11.82px;">多数据源</a> <a href="/website-hexo-icarus/tags/%E5%AD%98%E5%82%A8%E8%BF%87%E7%A8%8B/" style="font-size: 10px;">存储过程</a> <a href="/website-hexo-icarus/tags/%E5%AE%89%E8%A3%85/" style="font-size: 13.64px;">安装</a> <a href="/website-hexo-icarus/tags/%E5%B7%A5%E5%85%B7/" style="font-size: 12.73px;">工具</a> <a href="/website-hexo-icarus/tags/%E5%B9%82%E7%AD%89/" style="font-size: 10px;">幂等</a> <a href="/website-hexo-icarus/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" style="font-size: 10.91px;">快捷键</a> <a href="/website-hexo-icarus/tags/%E6%8C%82%E8%BD%BD/" style="font-size: 10px;">挂载</a> <a href="/website-hexo-icarus/tags/%E6%8F%92%E4%BB%B6/" style="font-size: 12.73px;">插件</a> <a href="/website-hexo-icarus/tags/%E6%A0%BC%E5%BC%8F%E5%8C%96/" style="font-size: 10px;">格式化</a> <a href="/website-hexo-icarus/tags/%E7%B4%A2%E5%BC%95/" style="font-size: 10px;">索引</a> <a href="/website-hexo-icarus/tags/%E8%B7%A8%E5%9F%9F/" style="font-size: 10px;">跨域</a> <a href="/website-hexo-icarus/tags/%E9%85%8D%E7%BD%AE/" style="font-size: 10px;">配置</a> <a href="/website-hexo-icarus/tags/%E9%97%AE%E9%A2%98/" style="font-size: 11.82px;">问题</a> <a href="/website-hexo-icarus/tags/%E9%9B%86%E7%BE%A4/" style="font-size: 12.73px;">集群</a> <a href="/website-hexo-icarus/tags/%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/" style="font-size: 10px;">静态资源</a>
+    </div>
+</div>
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+        <h3 class="menu-label">
+            链接
+        </h3>
+        <ul class="menu-list">
+        
+            <li>
+                <a class="level is-mobile" href="https://cxy35.com" target="_blank" rel="noopener">
+                    <span class="level-left">
+                        <span class="level-item">程序员35</span>
+                    </span>
+                    <span class="level-right">
+                        <span class="level-item tag">cxy35.com</span>
+                    </span>
+                </a>
+            </li>
+        
+            <li>
+                <a class="level is-mobile" href="https://hexo.io/zh-cn/" target="_blank" rel="noopener">
+                    <span class="level-left">
+                        <span class="level-item">Hexo</span>
+                    </span>
+                    <span class="level-right">
+                        <span class="level-item tag">hexo.io</span>
+                    </span>
+                </a>
+            </li>
+        
+            <li>
+                <a class="level is-mobile" href="https://blog.zhangruipeng.me/hexo-theme-icarus/" target="_blank" rel="noopener">
+                    <span class="level-left">
+                        <span class="level-item">Icarus</span>
+                    </span>
+                    <span class="level-right">
+                        <span class="level-item tag">blog.zhangruipeng.me</span>
+                    </span>
+                </a>
+            </li>
+        
+            <li>
+                <a class="level is-mobile" href="https://github.com/ppoffice" target="_blank" rel="noopener">
+                    <span class="level-left">
+                        <span class="level-item">PPOffice</span>
+                    </span>
+                    <span class="level-right">
+                        <span class="level-item tag">github.com</span>
+                    </span>
+                </a>
+            </li>
+        
+        </ul>
+        </div>
+    </div>
+</div>
+
+    
+    
+        <div class="column-right-shadow is-hidden-widescreen ">
+        
+            <div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            最新文章
+        </h3>
+        
+        <article class="media">
+            
+            <a href="/website-hexo-icarus/2020/11/15/other/canal-mysql-es/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/website-hexo-icarus/images/thumbnail.svg" alt="通过 canal 将 MySQL 数据实时同步到 Elasticsearch">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-11-15T10:42:24.000Z">2020-11-15</time></div>
+                    <a href="/website-hexo-icarus/2020/11/15/other/canal-mysql-es/" class="title has-link-black-ter is-size-6 has-text-weight-normal">通过 canal 将 MySQL 数据实时同步到 Elasticsearch</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/website-hexo-icarus/categories/canal/">canal</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/website-hexo-icarus/2020/11/02/tool/sublime-plugins/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/website-hexo-icarus/images/thumbnail.svg" alt="Sublime Text 常用插件">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-11-02T06:15:36.000Z">2020-11-02</time></div>
+                    <a href="/website-hexo-icarus/2020/11/02/tool/sublime-plugins/" class="title has-link-black-ter is-size-6 has-text-weight-normal">Sublime Text 常用插件</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/website-hexo-icarus/categories/IDE/">IDE</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/website-hexo-icarus/2020/11/02/tool/sublime-keymap/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/website-hexo-icarus/images/thumbnail.svg" alt="Sublime Text 常用快捷键">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-11-02T04:39:11.000Z">2020-11-02</time></div>
+                    <a href="/website-hexo-icarus/2020/11/02/tool/sublime-keymap/" class="title has-link-black-ter is-size-6 has-text-weight-normal">Sublime Text 常用快捷键</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/website-hexo-icarus/categories/IDE/">IDE</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/website-hexo-icarus/2020/11/01/other/mat/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/website-hexo-icarus/images/thumbnail.svg" alt="JVM 内存分析工具 - MAT">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-11-01T02:18:24.000Z">2020-11-01</time></div>
+                    <a href="/website-hexo-icarus/2020/11/01/other/mat/" class="title has-link-black-ter is-size-6 has-text-weight-normal">JVM 内存分析工具 - MAT</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/website-hexo-icarus/categories/JVM/">JVM</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/website-hexo-icarus/2020/10/21/elastic/elasticsearch-command/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/website-hexo-icarus/images/thumbnail.svg" alt="Elasticsearch 常用命令">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-10-21T03:02:47.000Z">2020-10-21</time></div>
+                    <a href="/website-hexo-icarus/2020/10/21/elastic/elasticsearch-command/" class="title has-link-black-ter is-size-6 has-text-weight-normal">Elasticsearch 常用命令</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/website-hexo-icarus/categories/Elasticsearch/">Elasticsearch</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+    </div>
+</div>
+        
+            <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+        <h3 class="menu-label">
+            归档
+        </h3>
+        <ul class="menu-list">
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/11/">
+                <span class="level-start">
+                    <span class="level-item">十一月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">4</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/10/">
+                <span class="level-start">
+                    <span class="level-item">十月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/07/">
+                <span class="level-start">
+                    <span class="level-item">七月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/06/">
+                <span class="level-start">
+                    <span class="level-item">六月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">5</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/05/">
+                <span class="level-start">
+                    <span class="level-item">五月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">16</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/04/">
+                <span class="level-start">
+                    <span class="level-item">四月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">10</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/03/">
+                <span class="level-start">
+                    <span class="level-item">三月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">7</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/02/">
+                <span class="level-start">
+                    <span class="level-item">二月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">4</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2020/01/">
+                <span class="level-start">
+                    <span class="level-item">一月 2020</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">10</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/12/">
+                <span class="level-start">
+                    <span class="level-item">十二月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">13</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/11/">
+                <span class="level-start">
+                    <span class="level-item">十一月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">13</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/10/">
+                <span class="level-start">
+                    <span class="level-item">十月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/09/">
+                <span class="level-start">
+                    <span class="level-item">九月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/05/">
+                <span class="level-start">
+                    <span class="level-item">五月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/03/">
+                <span class="level-start">
+                    <span class="level-item">三月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/02/">
+                <span class="level-start">
+                    <span class="level-item">二月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2019/01/">
+                <span class="level-start">
+                    <span class="level-item">一月 2019</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">5</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/12/">
+                <span class="level-start">
+                    <span class="level-item">十二月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/11/">
+                <span class="level-start">
+                    <span class="level-item">十一月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/10/">
+                <span class="level-start">
+                    <span class="level-item">十月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">4</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/09/">
+                <span class="level-start">
+                    <span class="level-item">九月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/08/">
+                <span class="level-start">
+                    <span class="level-item">八月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">5</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/07/">
+                <span class="level-start">
+                    <span class="level-item">七月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/06/">
+                <span class="level-start">
+                    <span class="level-item">六月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/05/">
+                <span class="level-start">
+                    <span class="level-item">五月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">4</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/website-hexo-icarus/archives/2018/04/">
+                <span class="level-start">
+                    <span class="level-item">四月 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">4</span>
+                </span>
+            </a>
+        </li>
+        
+        </ul>
+        </div>
+    </div>
+</div>
+        
+            <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                标签
+            </h3>
+            <div class="field is-grouped is-grouped-multiline">
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/AWStats/">
+                        <span class="tag">AWStats</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Apache/">
+                        <span class="tag">Apache</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Bus/">
+                        <span class="tag">Bus</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/CORS/">
+                        <span class="tag">CORS</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Config/">
+                        <span class="tag">Config</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Consul/">
+                        <span class="tag">Consul</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/DevTools/">
+                        <span class="tag">DevTools</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/ES/">
+                        <span class="tag">ES</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/EasyCode/">
+                        <span class="tag">EasyCode</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Eclipse/">
+                        <span class="tag">Eclipse</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Ehcache/">
+                        <span class="tag">Ehcache</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Elastic/">
+                        <span class="tag">Elastic</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Elasticsearch/">
+                        <span class="tag">Elasticsearch</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Eureka/">
+                        <span class="tag">Eureka</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Freemarker/">
+                        <span class="tag">Freemarker</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Gateway/">
+                        <span class="tag">Gateway</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Git/">
+                        <span class="tag">Git</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/HR/">
+                        <span class="tag">HR</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/HTTPS/">
+                        <span class="tag">HTTPS</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Hexo/">
+                        <span class="tag">Hexo</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/HyperLogLog/">
+                        <span class="tag">HyperLogLog</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Hystrix/">
+                        <span class="tag">Hystrix</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/IDE/">
+                        <span class="tag">IDE</span>
+                        <span class="tag is-grey">8</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Icarus/">
+                        <span class="tag">Icarus</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/IntelliJ-IDEA/">
+                        <span class="tag">IntelliJ IDEA</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/JSON/">
+                        <span class="tag">JSON</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/JVM/">
+                        <span class="tag">JVM</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/JWT/">
+                        <span class="tag">JWT</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/JdbcTemplate/">
+                        <span class="tag">JdbcTemplate</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Jedis/">
+                        <span class="tag">Jedis</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Jpa/">
+                        <span class="tag">Jpa</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Lettuce/">
+                        <span class="tag">Lettuce</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Linux/">
+                        <span class="tag">Linux</span>
+                        <span class="tag is-grey">7</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/LiveReload/">
+                        <span class="tag">LiveReload</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/MAT/">
+                        <span class="tag">MAT</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Markdown/">
+                        <span class="tag">Markdown</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Maven/">
+                        <span class="tag">Maven</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/MyBatis/">
+                        <span class="tag">MyBatis</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/MySQL/">
+                        <span class="tag">MySQL</span>
+                        <span class="tag is-grey">18</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Mycat/">
+                        <span class="tag">Mycat</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Nacos/">
+                        <span class="tag">Nacos</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/NexT/">
+                        <span class="tag">NexT</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Nginx/">
+                        <span class="tag">Nginx</span>
+                        <span class="tag is-grey">8</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/OAuth2/">
+                        <span class="tag">OAuth2</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/OpenFeign/">
+                        <span class="tag">OpenFeign</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/POI/">
+                        <span class="tag">POI</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/PSI-Probe/">
+                        <span class="tag">PSI Probe</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/PowerJob/">
+                        <span class="tag">PowerJob</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/RabbitMQ/">
+                        <span class="tag">RabbitMQ</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Redis/">
+                        <span class="tag">Redis</span>
+                        <span class="tag is-grey">11</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Resilience4j/">
+                        <span class="tag">Resilience4j</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Rest/">
+                        <span class="tag">Rest</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/RestTemplate/">
+                        <span class="tag">RestTemplate</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/SSH/">
+                        <span class="tag">SSH</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/SSL/">
+                        <span class="tag">SSL</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/SVN/">
+                        <span class="tag">SVN</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Sentinel/">
+                        <span class="tag">Sentinel</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Session/">
+                        <span class="tag">Session</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Shiro/">
+                        <span class="tag">Shiro</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Sleuth/">
+                        <span class="tag">Sleuth</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Spring-Boot/">
+                        <span class="tag">Spring Boot</span>
+                        <span class="tag is-grey">39</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Spring-Cache/">
+                        <span class="tag">Spring Cache</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Spring-Cloud/">
+                        <span class="tag">Spring Cloud</span>
+                        <span class="tag is-grey">17</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Spring-Security/">
+                        <span class="tag">Spring Security</span>
+                        <span class="tag is-grey">7</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Starter/">
+                        <span class="tag">Starter</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Stream/">
+                        <span class="tag">Stream</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Sublime/">
+                        <span class="tag">Sublime</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Swagger2/">
+                        <span class="tag">Swagger2</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Thymeleaf/">
+                        <span class="tag">Thymeleaf</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/TkMybatis/">
+                        <span class="tag">TkMybatis</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Tomcat/">
+                        <span class="tag">Tomcat</span>
+                        <span class="tag is-grey">6</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/Zuul/">
+                        <span class="tag">Zuul</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/binlog/">
+                        <span class="tag">binlog</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/canal/">
+                        <span class="tag">canal</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/fair/">
+                        <span class="tag">fair</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/mod-jk/">
+                        <span class="tag">mod_jk</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/mod-proxy/">
+                        <span class="tag">mod_proxy</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/mydumper/">
+                        <span class="tag">mydumper</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/mysqldump/">
+                        <span class="tag">mysqldump</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/properties/">
+                        <span class="tag">properties</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/xtrabackup/">
+                        <span class="tag">xtrabackup</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/yaml/">
+                        <span class="tag">yaml</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E4%B8%BB%E4%BB%8E/">
+                        <span class="tag">主从</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E4%BA%8B%E4%BB%B6/">
+                        <span class="tag">事件</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/">
+                        <span class="tag">任务调度</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E4%BC%98%E5%8C%96/">
+                        <span class="tag">优化</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%87%BD%E6%95%B0/">
+                        <span class="tag">函数</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%88%86%E5%8C%BA/">
+                        <span class="tag">分区</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%88%86%E5%8C%BA%E8%A1%A8/">
+                        <span class="tag">分区表</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">
+                        <span class="tag">分布式</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95/">
+                        <span class="tag">单元测试</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%8D%9A%E5%AE%A2/">
+                        <span class="tag">博客</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%91%BD%E4%BB%A4/">
+                        <span class="tag">命令</span>
+                        <span class="tag is-grey">9</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%A4%87%E4%BB%BD/">
+                        <span class="tag">备份</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%A4%9A%E6%95%B0%E6%8D%AE%E6%BA%90/">
+                        <span class="tag">多数据源</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%AD%98%E5%82%A8%E8%BF%87%E7%A8%8B/">
+                        <span class="tag">存储过程</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%AE%89%E8%A3%85/">
+                        <span class="tag">安装</span>
+                        <span class="tag is-grey">6</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%B7%A5%E5%85%B7/">
+                        <span class="tag">工具</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%B9%82%E7%AD%89/">
+                        <span class="tag">幂等</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/">
+                        <span class="tag">快捷键</span>
+                        <span class="tag is-grey">2</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E6%8C%82%E8%BD%BD/">
+                        <span class="tag">挂载</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E6%8F%92%E4%BB%B6/">
+                        <span class="tag">插件</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E6%A0%BC%E5%BC%8F%E5%8C%96/">
+                        <span class="tag">格式化</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E7%B4%A2%E5%BC%95/">
+                        <span class="tag">索引</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E8%B7%A8%E5%9F%9F/">
+                        <span class="tag">跨域</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E9%85%8D%E7%BD%AE/">
+                        <span class="tag">配置</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E9%97%AE%E9%A2%98/">
+                        <span class="tag">问题</span>
+                        <span class="tag is-grey">3</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E9%9B%86%E7%BE%A4/">
+                        <span class="tag">集群</span>
+                        <span class="tag is-grey">4</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/website-hexo-icarus/tags/%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/">
+                        <span class="tag">静态资源</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+        
+        </div>
+    
+</div>
+
+                <!-- 原始代码，处理非 post 页面和非 page 页面文章详情页 -->
+
+
+<!-- 粘贴的部分，处理 post 页面和 page 页面 -->
+
+            </div>
+        </div>
+    </section>
+    <footer class="footer">
+    <div class="container">
+        <div class="level">
+            <div class="level-start has-text-centered-mobile">
+                <a class="footer-logo is-block has-mb-6" href="/website-hexo-icarus/">
+                
+                    <img src="/website-hexo-icarus/images/config/logo.svg" alt="MySQL 备份与恢复 - mydumper" height="28">
+                
+                </a>
+                <p class="is-size-7">
+                &copy; 2022 程序员35，#程序员的35，35的程序员#
+                <!-- Powered by <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a> & <a
+                        href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank" rel="noopener">Icarus</a> -->
+                <!-- 
+                <br>
+                <span id="busuanzi_container_site_uv">
+                共<span id="busuanzi_value_site_uv">0</span>个访客
+                </span>
+                 -->
+                </p>
+            </div>
+            <div style="text-align: center;">
+                <p class="is-size-7">
+                    <span id="timeDate">载入天数...</span><span id="times">载入时分秒...</span>
+                    <script>
+                        var now = new Date(); 
+                        function createtime() { 
+                            var grt= new Date("1/2/2020 08:00:00");// 此处修改你的建站时间或者网站上线时间 
+                            now.setTime(now.getTime()+250); 
+                            days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days); 
+                            hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours); 
+                            if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum); 
+                            mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;} 
+                            seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum); 
+                            snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;} 
+                            document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 "; 
+                            document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒"; 
+                        } 
+                        setInterval("createtime()",250);
+                    </script>
+                    <br>
+                    
+                    <span id="busuanzi_container_site_uv">
+                        <i class="fa fa-user"></i> 本站访客数 <span id="busuanzi_value_site_uv"></span> 人次
+                    </span>
+                    <span id="busuanzi_container_site_pv">
+                        |  <i class="fa fa-eye"></i> 本站总访问量 <span id="busuanzi_value_site_pv"></span> 次
+                    </span>
+                    
+                </p>
+            </div>
+            <div class="level-end">
+            
+                <div class="field has-addons is-flex-center-mobile has-mt-5-mobile is-flex-wrap is-flex-middle">
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" rel="noopener" title="Creative Commons" href="https://creativecommons.org/">
+                        
+                        <i class="fab fa-creative-commons"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" rel="noopener" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/">
+                        
+                        <i class="fab fa-creative-commons-by"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/cxy35">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                </p>
+                
+                </div>
+            
+            </div>
+        </div>
+    </div>
+</footer>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script>
+<script>moment.locale("zh-CN");</script>
+
+
+<script>
+var IcarusThemeSettings = {
+    site: {
+        url: 'https://yoursite.com',
+        external_link: {"enable":true,"exclude":[]}
+    },
+    article: {
+        highlight: {
+            clipboard: true,
+            fold: 'unfolded'
+        }
+    }
+};
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script>
+
+
+
+
+
+<script src="/website-hexo-icarus/js/animation.js"></script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script>
+<script src="/website-hexo-icarus/js/gallery.js" defer></script>
+
+
+
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/">Update
+            my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.js" defer></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        });
+    });
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.5/unpacked/MathJax.js?config=TeX-MML-AM_CHTML" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    MathJax.Hub.Config({
+        'HTML-CSS': {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+});
+</script>
+
+
+<a id="back-to-top" title="回到顶端" href="javascript:;">
+    <i class="fas fa-chevron-up"></i>
+</a>
+<script src="/website-hexo-icarus/js/back-to-top.js" defer></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/website-hexo-icarus/js/main.js" defer></script>
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="想要查找什么..." />
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: '文章',
+                PAGES: '页面',
+                CATEGORIES: '分类',
+                TAGS: '标签',
+                UNTITLED: '(无标题)',
+            },
+            CONTENT_URL: '/website-hexo-icarus/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+<script src="/website-hexo-icarus/js/insight.js" defer></script>
+<link rel="stylesheet" href="/website-hexo-icarus/css/search.css">
+<link rel="stylesheet" href="/website-hexo-icarus/css/insight.css">
+    
+</body>
+</html>
